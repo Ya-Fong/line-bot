@@ -74,38 +74,39 @@ def handle_follow(event):
             template=confirm_template
         )
 
+        url = "https://line-bot-eta-one.vercel.app"
         image_carousel_template = ImageCarouselTemplate(
             columns=[
                 ImageCarouselColumn(
-                    image_url=request.url_root.rstrip('/')+'/school_web.jpg',
+                    image_url=url+'/school_web.jpg',
                     action = URIAction(
                         label="訪問聯大總網",
                         uri="https://www.nuu.edu.tw/"
                     )
                 ),
                 ImageCarouselColumn(
-                    image_url=request.url_root.rstrip('/')+'/imf.png',
+                    image_url=url+'/imf.png',
                     action = URIAction(
                         label="訪問校務資訊系統",
                         uri="https://eap10.nuu.edu.tw/Login.aspx?logintype=S"
                     )
                 ),
                 ImageCarouselColumn(
-                    image_url=request.url_root.rstrip('/')+'/csie.png',
+                    image_url=url+'/csie.png',
                     action = URIAction(
                         label="訪問資工系網頁",
                         uri="https://csie.nuu.edu.tw/"
                     )
                 ),
                 ImageCarouselColumn(
-                    image_url=request.url_root.rstrip('/')+'/fb.png',
+                    image_url=url+'/fb.png',
                     action = URIAction(
                         label="訪問系學會fb",
                         uri="https://www.facebook.com/CSIEofNUU/"
                     )
                 ),
                 ImageCarouselColumn(
-                    image_url=request.url_root.rstrip('/')+'/ig.jpg',
+                    image_url=url+'/ig.jpg',
                     action = URIAction(
                         label="訪問系學會ig",
                         uri="https://www.instagram.com/nuu_csie_/"
