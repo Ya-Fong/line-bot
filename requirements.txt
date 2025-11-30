@@ -1,3 +1,4 @@
 flask
 line-bot-sdk==3.7.0
+psycopg2-binary
 requests
