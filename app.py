@@ -41,11 +41,11 @@ line_handler = WebhookHandler(os.getenv('CHANNEL_SECRET'))
 supabase_url = os.getenv('DATABASE_URL')
 
 def get_courses_list(day_name):
-    DATABASE_URL = os.getenv('DATABASE_URL')
+    supabase_url = os.getenv('DATABASE_URL')
     
     try:
         # 建立連線 (Supabase 通常需要 sslmode='require')
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = psycopg2.connect(supabase_url, sslmode='require')
         cur = conn.cursor()
         
         # 查詢課程，依照時間排序
@@ -260,3 +260,4 @@ def handle_message(event):
                     )
                 )
             
+
