@@ -44,8 +44,8 @@ def get_courses_list(day_name):
     supabase_url = os.getenv('DATABASE_URL')
     
     try:
-        # 建立連線 (Supabase 通常需要 sslmode='require')
-        conn = psycopg2.connect(supabase_url, sslmode='require')
+        # 建立連線
+        conn = psycopg2.connect(supabase_url)
         cur = conn.cursor()
         
         # 查詢課程，依照時間排序
@@ -260,4 +260,5 @@ def handle_message(event):
                     )
                 )
             
+
 
