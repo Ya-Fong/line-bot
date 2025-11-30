@@ -17,6 +17,8 @@ from linebot.v3.messaging import (
     ConfirmTemplate,
     ImageCarouselTemplate,
     ImageCarouselColumn,
+    QuickReply,
+    QuickReplyItem,
     PostbackAction,
     MessageAction,
     URIAction,
@@ -29,13 +31,41 @@ from linebot.v3.webhooks import (
     TextMessageContent
 )
 import os
+import psycopg2
 
 
 app = Flask(__name__)
 
 configuration = Configuration(access_token=os.getenv('CHANNEL_ACCESS_TOKEN'))
 line_handler = WebhookHandler(os.getenv('CHANNEL_SECRET'))
+supabase_url = os.getenv('DATABASE_URL')
 
+def get_courses_list(day_name):
+    DATABASE_URL = os.getenv('DATABASE_URL')
+    
+    try:
+        # 建立連線 (Supabase 通常需要 sslmode='require')
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        
+        # 查詢課程，依照時間排序
+        sql = """
+            SELECT course_name, time_slot, location 
+            FROM schedule 
+            WHERE weekday = %s 
+            ORDER BY time_slot
+        """
+        cur.execute(sql, (day_name,))
+        rows = cur.fetchall()
+        
+        cur.close()
+        conn.close()
+        
+        return rows # 回傳原始資料列表 [(課名, 時間, 地點), (...)]
+        
+    except Exception as e:
+        print(f"資料庫錯誤: {e}")
+        return []
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -163,13 +193,70 @@ def handle_message(event):
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
 
-        if text != "是" and text != "否":
+        # 定義有效的星期列表 (用來檢查使用者輸入是否合法)
+        valid_days = [
+            "星期一", "星期二", "星期三", "星期四", 
+            "星期五", "星期六", "星期日"
+        ]
+
+        # 1. 觸發查詢：跳出 Quick Reply
+        if text == "查詢課表":
+            items = [
+                QuickReplyItem(action=MessageAction(label="星期一", text="星期一")),
+                QuickReplyItem(action=MessageAction(label="星期二", text="星期二")),
+                QuickReplyItem(action=MessageAction(label="星期三", text="星期三")),
+                QuickReplyItem(action=MessageAction(label="星期四", text="星期四")),
+                QuickReplyItem(action=MessageAction(label="星期五", text="星期五")),
+            ]
+            
             line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
-                    messages=[TextMessage(text="我不清楚你在說什麼，可以看看上方資訊欄位喔")]   
+                    messages=[
+                        TextMessage(
+                            text="請選擇想查詢的日期:",
+                            quick_reply=QuickReply(items=items)
+                        )
+                    ]
                 )
             )
+
+        # 2. 直接判斷：如果使用者輸入的是「星期幾」
+        elif text in valid_days:
+            # 不需要轉換了，直接拿 text (例如 "星期一") 去資料庫查
+            course_rows = get_courses_list(text)
             
+            reply_messages_list = []
 
+            if not course_rows:
+                reply_messages_list.append(TextMessage(text=f"{text}沒有課,可以好好休息!也別忘了要練習程式喔"))
+            else:
+                # 1. 先放一個標題
+                reply_messages_list.append(TextMessage(text=f"{text}的課表如下"))
 
+                # 2. 把查到的課程加入列表
+                for row in course_rows:
+                    course_name = row[0]
+                    time_slot = row[1]
+                    location = row[2]
+                    
+                    msg_text = f"課程名稱: {course_name}\n時間: {time_slot}\n教室: {location}"
+                    reply_messages_list.append(TextMessage(text=msg_text))
+
+            line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=reply_messages_list
+                )
+            )
+
+        # 3. 其他訊息
+        else:
+            if text != "是" and text != "否":
+                line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text="我不清楚你在說什麼，可以看看上方資訊欄位或輸入「查詢課表」喔")]   
+                    )
+                )
+            
