@@ -164,7 +164,7 @@ def create_rich_menu():
         }
 
         # 發送請求建立圖文選單
-        response = requests.post('https://api.line.me/v3/bot/richmenu', headers=header, data=json.dumps(body).encode('utf-8'))
+        response = requests.post('https://api.line.me/v2/bot/richmenu', headers=header, data=json.dumps(body).encode('utf-8'))
         response = response.json()
         rich_menu_id = response['richMenuId']
 
@@ -355,4 +355,5 @@ def handle_message(event):
                     )
                 )
             
+
 
