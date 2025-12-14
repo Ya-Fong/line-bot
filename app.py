@@ -81,7 +81,7 @@ def create_rich_menu():
 
         # 建立 Rich Menu
         header = {
-            'Athorization': 'Bearer' + os.getenv('CHANNEL_ACCESS_TOKEN'),
+            'Authorization': 'Bearer' + os.getenv('CHANNEL_ACCESS_TOKEN'),
             'Content-Type': 'application/json'
         }
         body = {
@@ -159,6 +159,7 @@ def create_rich_menu():
         )
 
         line_bot_api.set_default_rich_menu(rich_menu_id)
+create_rich_menu()
 
 
 @app.route("/callback", methods=['POST'])
@@ -354,5 +355,6 @@ def handle_message(event):
                     )
                 )
             
+
 
 
