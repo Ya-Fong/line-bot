@@ -278,34 +278,33 @@ def handle_message(event):
                 )
             )
 
-                # 直接判斷：如果使用者輸入的是「星期幾」
-            if text in valid_days:
-                # 不需要轉換了，直接拿 text (例如 "星期一") 去資料庫查
-                course_rows = get_courses_list(text)
+        # 直接判斷：如果使用者輸入的是「星期幾」
+        elif text in valid_days:
+            # 不需要轉換了，直接拿 text (例如 "星期一") 去資料庫查
+            course_rows = get_courses_list(text)
                 
-                reply_messages_list = []
+            reply_messages_list = []
 
-                if not course_rows:
-                    reply_messages_list.append(TextMessage(text=f"{text}沒有課,可以好好休息!也別忘了要練習程式喔"))
-                else:
-                    # 1. 先放一個標題
-                    reply_messages_list.append(TextMessage(text=f"{text}的課表如下"))
-
-                    # 2. 把查到的課程加入列表
-                    for row in course_rows:
-                        course_name = row[0]
-                        time_slot = row[1]
-                        location = row[2]
+            if not course_rows:
+                reply_messages_list.append(TextMessage(text=f"{text}沒有課,可以好好休息!也別忘了要練習程式喔"))
+            else:
+                # 1. 先放一個標題
+                reply_messages_list.append(TextMessage(text=f"{text}的課表如下"))
+                # 2. 把查到的課程加入列表
+                for row in course_rows:
+                    course_name = row[0]
+                    time_slot = row[1]
+                    location = row[2]
                         
-                        msg_text = f"課程名稱: {course_name}\n時間: {time_slot}\n教室: {location}"
-                        reply_messages_list.append(TextMessage(text=msg_text))
+                    msg_text = f"課程名稱: {course_name}\n時間: {time_slot}\n教室: {location}"
+                    reply_messages_list.append(TextMessage(text=msg_text))
 
-                line_bot_api.reply_message(
-                    ReplyMessageRequest(
-                        reply_token=event.reply_token,
-                        messages=reply_messages_list
-                    )
-                ) 
+            line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=reply_messages_list
+                )
+            )  
 
         # 2. 行事曆
         elif text == "行事曆":
