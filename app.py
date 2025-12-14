@@ -313,11 +313,11 @@ def handle_message(event):
 
             image_message_1 = ImageSendMessage(
                 original_content_url = supabase_image_url_1,            # 原始大小
-                preview_image_url = supabase_image_url_1 + "?width=240" # 利用 Supabase 功能產生縮圖
+                preview_image_url = supabase_image_url_1
             )
             image_message_2 = ImageSendMessage(
                 original_content_url = supabase_image_url_2,            # 原始大小
-                preview_image_url = supabase_image_url_2 + "?width=240" # 利用 Supabase 功能產生縮圖
+                preview_image_url = supabase_image_url_2
             )
 
             line_bot_api.reply_message(
@@ -392,3 +392,4 @@ def handle_message(event):
                     )
                 )
             
+
