@@ -74,6 +74,25 @@ def get_courses_list(day_name):
         return []
 
 
+@app.route("/callback", methods=['POST'])
+def callback():
+    # get X-Line-Signature header value
+    signature = request.headers['X-Line-Signature']
+
+    # get request body as text
+    body = request.get_data(as_text=True)
+    app.logger.info("Request body: " + body)
+
+    # handle webhook body
+    try:
+        line_handler.handle(body, signature)
+    except InvalidSignatureError:
+        app.logger.info("Invalid signature. Please check your channel access token/channel secret.")
+        abort(400)
+
+    return 'OK'
+
+@app.route("/create_rich_menu")
 def create_rich_menu():
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
@@ -81,7 +100,7 @@ def create_rich_menu():
 
         # 建立 Rich Menu
         header = {
-            'Authorization': 'Bearer' + os.getenv('CHANNEL_ACCESS_TOKEN'),
+            'Authorization': 'Bearer ' + os.getenv('CHANNEL_ACCESS_TOKEN'),
             'Content-Type': 'application/json'
         }
         body = {
@@ -143,7 +162,7 @@ def create_rich_menu():
                 }
             ]
         }
-        
+
         # 發送請求建立圖文選單
         response = requests.post('https://api.line.me/v3/bot/richmenu', headers=header, data=json.dumps(body).encode('utf-8'))
         response = response.json()
@@ -160,25 +179,7 @@ def create_rich_menu():
 
         line_bot_api.set_default_rich_menu(rich_menu_id)
 
-
-@app.route("/callback", methods=['POST'])
-def callback():
-    # get X-Line-Signature header value
-    signature = request.headers['X-Line-Signature']
-
-    # get request body as text
-    body = request.get_data(as_text=True)
-    app.logger.info("Request body: " + body)
-
-    # handle webhook body
-    try:
-        line_handler.handle(body, signature)
-    except InvalidSignatureError:
-        app.logger.info("Invalid signature. Please check your channel access token/channel secret.")
-        abort(400)
-
-    return 'OK'
-
+    return 'Rich menu created'
 
 # 加入好友事件
 @line_handler.add(FollowEvent)
@@ -255,7 +256,6 @@ def handle_follow(event):
                             image_carousel_message]
             )
         )
-create_rich_menu()
 
 
 # postback事件
@@ -355,7 +355,4 @@ def handle_message(event):
                     )
                 )
             
-
-
-
 
