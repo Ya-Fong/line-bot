@@ -10,9 +10,14 @@ from linebot.v3.messaging import (
     Configuration,
     ApiClient,
     MessagingApi,
+    MessagingApiBlob,
     ReplyMessageRequest,
     TextMessage,
     Emoji,
+    RichMenuSize,
+    RichMenuRequest,
+    RichMenuArea,
+    RichMenuBounds,
     TemplateMessage,
     ConfirmTemplate,
     ImageCarouselTemplate,
@@ -32,13 +37,14 @@ from linebot.v3.webhooks import (
 )
 import os
 import psycopg2
+import json
+import requests
 
 
 app = Flask(__name__)
 
 configuration = Configuration(access_token=os.getenv('CHANNEL_ACCESS_TOKEN'))
 line_handler = WebhookHandler(os.getenv('CHANNEL_SECRET'))
-supabase_url = os.getenv('DATABASE_URL')
 
 def get_courses_list(day_name):
     supabase_url = os.getenv('DATABASE_URL')
@@ -66,6 +72,92 @@ def get_courses_list(day_name):
     except Exception as e:
         print(f"資料庫錯誤: {e}")
         return []
+
+
+def create_rich_menu():
+    with ApiClient(configuration) as api_client:
+        line_bot_api = MessagingApi(api_client)
+        line_bot_api_blob = MessagingApiBlob(api_client)
+
+        # 建立 Rich Menu
+        header = {
+            'Athorization': 'Bearer' + os.getenv('CHANNEL_ACCESS_TOKEN'),
+            'Content-Type': 'application/json'
+        }
+        body = {
+            "size": {
+                "width": 2500,
+                "height": 1686
+            },
+            "selected": True,
+            "name": "圖文選單 1",
+            "chatBarText": "查看更多資訊",
+            "areas": [
+                {
+                    "bounds": {
+                        "x": 25,
+                        "y": 866,
+                        "width": 786,
+                        "height": 789
+                    },
+                    "action": {
+                        "type": "message",
+                        "text": "行事曆",
+                    }
+                },
+                {
+                    "bounds": {
+                        "x": 861,
+                        "y": 866,
+                        "width": 778,
+                        "height": 789
+                    },
+                    "action": {
+                        "type": "message",
+                        "text": "查詢課表"
+                    }
+                },
+                {
+                    "bounds": {
+                        "x": 1689,
+                        "y": 870,
+                        "width": 786,
+                        "height": 785
+                    },
+                    "action": {
+                        "type": "message",
+                        "text": "更多資訊"
+                    }
+                },
+                {
+                    "bounds": {
+                        "x": 25,
+                        "y": 25,
+                        "width": 2450,
+                        "height": 790
+                    },
+                    "action": {
+                        "type": "message",
+                        "text": "上傳圖片"
+                    }
+                }
+            ]
+        }
+        
+        # 發送請求建立圖文選單
+        response = requests.post('https://api.line.me/v3/bot/richmenu', headers=header, data=json.dumps(body).encode('utf-8'))
+        response = response.json()
+        rich_menu_id = response['richMenuId']
+
+        # 上傳圖文選單圖片
+        image_url = 'https://raw.githubusercontent.com/Ya-Fong/line-bot/main/public/richmenu.jpg'
+        response = requests.get(image_url)
+        line_bot_api_blob.set_rich_menu_image(
+            rich_menu_id=rich_menu_id,
+            content_type='image/jpeg',
+            body=response.content
+        )
+
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -260,5 +352,4 @@ def handle_message(event):
                     )
                 )
             
-
 
