@@ -311,16 +311,22 @@ def handle_message(event):
             supabase_image_url_1 = "https://jfnhxrcdlhajyhuadxkx.supabase.co/storage/v1/object/public/picture/114-1Calendar.png"
             supabase_image_url_2 = "https://jfnhxrcdlhajyhuadxkx.supabase.co/storage/v1/object/public/picture/114-2Calendar.png"
 
-            line_bot_api.reply_message(
-                ReplyMessageRequest(
-                    reply_token=event.reply_token,
-                    messages=[
-                        TextMessage(text="114學年行事曆(上下學期)"),
-                        ImageMessage(original_content_url=supabase_image_url_1),
-                        ImageMessage(original_content_url=supabase_image_url_2),
-                    ]
+            image_message_1 = ImageMessage(
+                original_content_url = supabase_image_url_1,            # 原始大小
+                preview_image_url = supabase_image_url_1
             )
-    ) 
+            image_message_2 = ImageMessage(
+                original_content_url = supabase_image_url_2,            # 原始大小
+                preview_image_url = supabase_image_url_2
+            )
+
+            line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text="114學年行事曆(上下學期)")
+                                , image_message_1, image_message_2]
+                    )
+                ) 
 
         # 3. 上傳圖片
 
