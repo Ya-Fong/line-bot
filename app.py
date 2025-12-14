@@ -6,6 +6,7 @@ from linebot.v3 import (
 from linebot.v3.exceptions import (
     InvalidSignatureError
 )
+from linebot.models import ImageSendMessage
 from linebot.v3.messaging import (
     Configuration,
     ApiClient,
@@ -92,6 +93,7 @@ def callback():
 
     return 'OK'
 
+
 @app.route("/create_rich_menu")
 def create_rich_menu():
     with ApiClient(configuration) as api_client:
@@ -163,6 +165,11 @@ def create_rich_menu():
             ]
         }
 
+        # ---------------------------------------------------
+        #  Rich Menu 設定區塊 (已執行過，暫時封印)
+        #  如果要更新選單圖片或配置，請再訪問該網頁一次
+        #  https://line-bot-beta-two.vercel.app/create_rich_menu
+        # ---------------------------------------------------
         # 發送請求建立圖文選單
         response = requests.post('https://api.line.me/v2/bot/richmenu', headers=header, data=json.dumps(body).encode('utf-8'))
         response = response.json()
@@ -199,50 +206,6 @@ def handle_follow(event):
             template=confirm_template
         )
 
-        image_carousel_template = ImageCarouselTemplate(
-            columns=[
-                ImageCarouselColumn(
-                    image_url='https://raw.githubusercontent.com/Ya-Fong/line-bot/main/public/school_web.jpg',
-                    action = URIAction(
-                        label="訪問聯大總網",
-                        uri="https://www.nuu.edu.tw/"
-                    )
-                ),
-                ImageCarouselColumn(
-                    image_url='https://raw.githubusercontent.com/Ya-Fong/line-bot/main/public/imf.png',
-                    action = URIAction(
-                        label="訪問校務資訊系統",
-                        uri="https://eap10.nuu.edu.tw/Login.aspx?logintype=S"
-                    )
-                ),
-                ImageCarouselColumn(
-                    image_url='https://raw.githubusercontent.com/Ya-Fong/line-bot/main/public/csie.png',
-                    action = URIAction(
-                        label="訪問資工系網頁",
-                        uri="https://csie.nuu.edu.tw/"
-                    )
-                ),
-                ImageCarouselColumn(
-                    image_url='https://raw.githubusercontent.com/Ya-Fong/line-bot/main/public/fb.png',
-                    action = URIAction(
-                        label="訪問系學會fb",
-                        uri="https://www.facebook.com/CSIEofNUU/"
-                    )
-                ),
-                ImageCarouselColumn(
-                    image_url='https://raw.githubusercontent.com/Ya-Fong/line-bot/main/public/ig.jpg',
-                    action = URIAction(
-                        label="訪問系學會ig",
-                        uri="https://www.instagram.com/nuu_csie_/"
-                    )
-                )
-            ]
-        )
-        image_carousel_message = TemplateMessage(
-            alt_text='圖片傳播範本',
-            template=image_carousel_template
-        )
-
         emojis_list = [
             Emoji(index=0, product_id="5ac22e85040ab15980c9b44f", emoji_id="008"),
             Emoji(index=16, product_id="670e0cce840a8236ddd4ee4c", emoji_id="019"),
@@ -252,8 +215,7 @@ def handle_follow(event):
             ReplyMessageRequest(
                 reply_token=event.reply_token,
                 messages = [TextMessage(text="$ 你好!歡迎加入聯大資訊工程系$ $", emojis=emojis_list),
-                            template_message,
-                            image_carousel_message]
+                            template_message]
             )
         )
 
@@ -294,7 +256,7 @@ def handle_message(event):
             "星期五", "星期六", "星期日"
         ]
 
-        # 1. 觸發查詢：跳出 Quick Reply
+        # 1. 查詢課表：跳出 Quick Reply
         if text == "查詢課表":
             items = [
                 QuickReplyItem(action=MessageAction(label="星期一", text="星期一")),
@@ -316,43 +278,118 @@ def handle_message(event):
                 )
             )
 
-        # 2. 直接判斷：如果使用者輸入的是「星期幾」
-        elif text in valid_days:
-            # 不需要轉換了，直接拿 text (例如 "星期一") 去資料庫查
-            course_rows = get_courses_list(text)
-            
-            reply_messages_list = []
+                # 直接判斷：如果使用者輸入的是「星期幾」
+            if text in valid_days:
+                # 不需要轉換了，直接拿 text (例如 "星期一") 去資料庫查
+                course_rows = get_courses_list(text)
+                
+                reply_messages_list = []
 
-            if not course_rows:
-                reply_messages_list.append(TextMessage(text=f"{text}沒有課,可以好好休息!也別忘了要練習程式喔"))
-            else:
-                # 1. 先放一個標題
-                reply_messages_list.append(TextMessage(text=f"{text}的課表如下"))
+                if not course_rows:
+                    reply_messages_list.append(TextMessage(text=f"{text}沒有課,可以好好休息!也別忘了要練習程式喔"))
+                else:
+                    # 1. 先放一個標題
+                    reply_messages_list.append(TextMessage(text=f"{text}的課表如下"))
 
-                # 2. 把查到的課程加入列表
-                for row in course_rows:
-                    course_name = row[0]
-                    time_slot = row[1]
-                    location = row[2]
-                    
-                    msg_text = f"課程名稱: {course_name}\n時間: {time_slot}\n教室: {location}"
-                    reply_messages_list.append(TextMessage(text=msg_text))
+                    # 2. 把查到的課程加入列表
+                    for row in course_rows:
+                        course_name = row[0]
+                        time_slot = row[1]
+                        location = row[2]
+                        
+                        msg_text = f"課程名稱: {course_name}\n時間: {time_slot}\n教室: {location}"
+                        reply_messages_list.append(TextMessage(text=msg_text))
+
+                line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=reply_messages_list
+                    )
+                ) 
+
+        # 2. 行事曆
+        elif text == "行事曆":
+            supabase_image_url_1 = "https://jfnhxrcdlhajyhuadxkx.supabase.co/storage/v1/object/public/picture/114-1Calendar.png"
+            supabase_image_url_2 = "https://jfnhxrcdlhajyhuadxkx.supabase.co/storage/v1/object/public/picture/114-2Calendar.png"
+
+            image_message_1 = ImageSendMessage(
+                original_content_url = supabase_image_url_1,            # 原始大小
+                preview_image_url = supabase_image_url_1 + "?width=240" # 利用 Supabase 功能產生縮圖
+            )
+            image_message_2 = ImageSendMessage(
+                original_content_url = supabase_image_url_2,            # 原始大小
+                preview_image_url = supabase_image_url_2 + "?width=240" # 利用 Supabase 功能產生縮圖
+            )
+
+            line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text="114學年行事曆(上下學期)")
+                                , image_message_1, image_message_2]
+                    )
+                ) 
+
+        # 3. 上傳圖片
+
+        # 4. 更多資訊
+        elif text == "更多資訊":
+            image_carousel_template = ImageCarouselTemplate(
+                columns=[
+                    ImageCarouselColumn(
+                        image_url='https://raw.githubusercontent.com/Ya-Fong/line-bot/main/public/school_web.jpg',
+                        action = URIAction(
+                            label="訪問聯大總網",
+                            uri="https://www.nuu.edu.tw/"
+                        )
+                    ),
+                    ImageCarouselColumn(
+                        image_url='https://raw.githubusercontent.com/Ya-Fong/line-bot/main/public/imf.png',
+                        action = URIAction(
+                            label="訪問校務資訊系統",
+                            uri="https://eap10.nuu.edu.tw/Login.aspx?logintype=S"
+                        )
+                    ),
+                    ImageCarouselColumn(
+                        image_url='https://raw.githubusercontent.com/Ya-Fong/line-bot/main/public/csie.png',
+                        action = URIAction(
+                            label="訪問資工系網頁",
+                            uri="https://csie.nuu.edu.tw/"
+                        )
+                    ),
+                    ImageCarouselColumn(
+                        image_url='https://raw.githubusercontent.com/Ya-Fong/line-bot/main/public/fb.png',
+                        action = URIAction(
+                            label="訪問系學會fb",
+                            uri="https://www.facebook.com/CSIEofNUU/"
+                        )
+                    ),
+                    ImageCarouselColumn(
+                        image_url='https://raw.githubusercontent.com/Ya-Fong/line-bot/main/public/ig.jpg',
+                        action = URIAction(
+                            label="訪問系學會ig",
+                            uri="https://www.instagram.com/nuu_csie_/"
+                        )
+                    )
+                ]
+            )
+            image_carousel_message = TemplateMessage(
+                alt_text='圖片傳播範本',
+                template=image_carousel_template
+            )
 
             line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
-                    messages=reply_messages_list
+                    messages=[image_carousel_message]
                 )
             )
-
-        # 3. 其他訊息
+        # 5. 其他訊息
         else:
             if text != "是" and text != "否":
                 line_bot_api.reply_message(
                     ReplyMessageRequest(
                         reply_token=event.reply_token,
-                        messages=[TextMessage(text="我不清楚你在說什麼，可以看看上方資訊欄位或輸入「查詢課表」喔")]   
+                        messages=[TextMessage(text="我不清楚你在說什麼，可以看看下方資訊欄位喔")]   
                     )
                 )
             
-
