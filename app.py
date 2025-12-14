@@ -170,11 +170,11 @@ def create_rich_menu():
 
         # 上傳圖文選單圖片
         image_url = 'https://raw.githubusercontent.com/Ya-Fong/line-bot/main/public/richmenu.jpg'
-        response = requests.get(image_url)
+        img_response = requests.get(image_url)
         line_bot_api_blob.set_rich_menu_image(
             rich_menu_id=rich_menu_id,
-            content_type='image/jpeg',
-            body=response.content
+            body=img_response.content,
+            _headers={'Content-Type': 'image/jpeg'}
         )
 
         line_bot_api.set_default_rich_menu(rich_menu_id)
@@ -355,7 +355,4 @@ def handle_message(event):
                     )
                 )
             
-
-
-
 
