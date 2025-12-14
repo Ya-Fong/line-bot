@@ -5,14 +5,14 @@ from linebot.v3 import (
 )
 from linebot.v3.exceptions import (
     InvalidSignatureError
-)
-from linebot.models import ImageSendMessage
+) 
 from linebot.v3.messaging import (
     Configuration,
     ApiClient,
     MessagingApi,
     MessagingApiBlob,
     ReplyMessageRequest,
+    ImageMessage,
     TextMessage,
     Emoji,
     RichMenuSize,
@@ -168,7 +168,7 @@ def create_rich_menu():
         # ---------------------------------------------------
         #  Rich Menu 設定區塊 (已執行過，暫時封印)
         #  如果要更新選單圖片或配置，請再訪問該網頁一次
-        # 
+        #  https://line-bot-beta-two.vercel.app/create_rich_menu
         # ---------------------------------------------------
         # 發送請求建立圖文選單
         response = requests.post('https://api.line.me/v2/bot/richmenu', headers=header, data=json.dumps(body).encode('utf-8'))
@@ -311,22 +311,16 @@ def handle_message(event):
             supabase_image_url_1 = "https://jfnhxrcdlhajyhuadxkx.supabase.co/storage/v1/object/public/picture/114-1Calendar.png"
             supabase_image_url_2 = "https://jfnhxrcdlhajyhuadxkx.supabase.co/storage/v1/object/public/picture/114-2Calendar.png"
 
-            image_message_1 = ImageSendMessage(
-                original_content_url = supabase_image_url_1,            # 原始大小
-                preview_image_url = f"https://wsrv.nl/?url={supabase_image_url_1}&w=300&output=jpg"
-            )
-            image_message_2 = ImageSendMessage(
-                original_content_url = supabase_image_url_2,            # 原始大小
-                preview_image_url = f"https://wsrv.nl/?url={supabase_image_url_2}&w=300&output=jpg"
-            )
-
             line_bot_api.reply_message(
-                    ReplyMessageRequest(
-                        reply_token=event.reply_token,
-                        messages=[TextMessage(text="114學年行事曆(上下學期)")
-                                , image_message_1, image_message_2]
-                    )
-                ) 
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[
+                        TextMessage(text="114學年行事曆(上下學期)"),
+                        ImageMessage(original_content_url=supabase_image_url_1),
+                        ImageMessage(original_content_url=supabase_image_url_2),
+                    ]
+            )
+    ) 
 
         # 3. 上傳圖片
 
