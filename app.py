@@ -159,7 +159,6 @@ def create_rich_menu():
         )
 
         line_bot_api.set_default_rich_menu(rich_menu_id)
-create_rich_menu()
 
 
 @app.route("/callback", methods=['POST'])
@@ -256,6 +255,7 @@ def handle_follow(event):
                             image_carousel_message]
             )
         )
+create_rich_menu()
 
 
 # postback事件
@@ -355,6 +355,7 @@ def handle_message(event):
                     )
                 )
             
+
 
 
 
