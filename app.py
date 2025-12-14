@@ -92,7 +92,7 @@ def callback():
 
     return 'OK'
 
-@app.route("/create_rich_menu", methods=['GET'])
+@app.route("/create_rich_menu")
 def create_rich_menu():
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
@@ -355,6 +355,7 @@ def handle_message(event):
                     )
                 )
             
+
 
 
 
