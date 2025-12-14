@@ -158,6 +158,8 @@ def create_rich_menu():
             body=response.content
         )
 
+        line_bot_api.set_default_rich_menu(rich_menu_id)
+
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -352,4 +354,5 @@ def handle_message(event):
                     )
                 )
             
+
 
