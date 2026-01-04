@@ -40,6 +40,7 @@ import os
 import psycopg2
 import json
 import requests
+import urllib.parse
 
 
 app = Flask(__name__)
@@ -73,6 +74,47 @@ def get_courses_list(day_name):
     except Exception as e:
         print(f"資料庫錯誤: {e}")
         return []
+
+
+def get_thingspeak_chart_url():
+    # 1. 設定 ThingSpeak 參數
+    channel_id = os.getenv('THINKSPEAK_TEMP_CHANNEL_ID')
+    read_api_key = os.getenv('THINKSPEAK_TEMP_READ_API_KEY')
+    RESULTS_NUM = 8  # 想要顯示最近的幾筆資料
+    
+    # 取得 ThingSpeak 原始數據 (JSON)
+    ts_url = f'https://api.thingspeak.com/channels/{channel_id}/fields/1.json?api_key={read_api_key}&results={RESULTS_NUM}'
+    response = requests.get(ts_url).json()
+    
+    # 解析數據
+    feeds = response.get('feeds', [])
+    labels = [f["created_at"][11:16] for f in feeds]  # 取得時間 (例如 14:30)
+    data = [float(f["field1"]) if f["field1"] else 0 for f in feeds] # 取得數值
+    
+    # 2. 設定 QuickChart 配置 (Chart.js 語法)
+    chart_config = {
+        "type": "line",
+        "data": {
+            "labels": labels,
+            "datasets": [{
+                "label": "溫度(°C)",
+                "data": data,
+                "fill": True,
+                "backgroundColor": "rgba(54, 162, 235, 0.2)",
+                "borderColor": "rgb(54, 162, 235)",
+                "borderWidth": 2
+            }]
+        },
+        "options": {
+            "title": { "display": True, "text": "ThingSpeak溫度數據" }
+        }
+    }
+    
+    # 將字典轉換為字串並進行 URL 編碼
+    encoded_config = urllib.parse.quote(str(chart_config))
+    quickchart_url = f"https://quickchart.io/chart?c={encoded_config}"
+    
+    return quickchart_url
 
 
 @app.route("/callback", methods=['POST'])
@@ -116,22 +158,46 @@ def create_rich_menu():
             "areas": [
                 {
                     "bounds": {
-                        "x": 25,
-                        "y": 866,
-                        "width": 786,
-                        "height": 789
+                        "x": 21,
+                        "y": 21,
+                        "width": 794,
+                        "height": 806
                     },
                     "action": {
                         "type": "message",
-                        "text": "行事曆",
+                        "text": "溫度"
                     }
                 },
                 {
                     "bounds": {
-                        "x": 861,
-                        "y": 866,
-                        "width": 778,
-                        "height": 789
+                        "x": 853,
+                        "y": 18,
+                        "width": 795,
+                        "height": 810
+                    },
+                    "action": {
+                        "type": "message",
+                        "text": "濕度"
+                    }
+                },
+                {
+                    "bounds": {
+                        "x": 17,
+                        "y": 858,
+                        "width": 794,
+                        "height": 811
+                    },
+                    "action": {
+                        "type": "message",
+                        "text": "行事曆"
+                    }
+                },
+                {
+                    "bounds": {
+                        "x": 848,
+                        "y": 862,
+                        "width": 799,
+                        "height": 807
                     },
                     "action": {
                         "type": "message",
@@ -140,26 +206,14 @@ def create_rich_menu():
                 },
                 {
                     "bounds": {
-                        "x": 1689,
-                        "y": 870,
-                        "width": 786,
-                        "height": 785
+                        "x": 1681,
+                        "y": 862,
+                        "width": 801,
+                        "height": 807
                     },
                     "action": {
                         "type": "message",
                         "text": "更多資訊"
-                    }
-                },
-                {
-                    "bounds": {
-                        "x": 25,
-                        "y": 25,
-                        "width": 2450,
-                        "height": 790
-                    },
-                    "action": {
-                        "type": "message",
-                        "text": "上傳圖片"
                     }
                 }
             ]
@@ -321,16 +375,14 @@ def handle_message(event):
             )
 
             line_bot_api.reply_message(
-                    ReplyMessageRequest(
-                        reply_token=event.reply_token,
-                        messages=[TextMessage(text="114學年行事曆(上下學期)")
-                                , image_message_1, image_message_2]
-                    )
-                ) 
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text="114學年行事曆(上下學期)")
+                            , image_message_1, image_message_2]
+                )
+            ) 
 
-        # 3. 上傳圖片
-
-        # 4. 更多資訊
+        # 3. 更多資訊
         elif text == "更多資訊":
             image_carousel_template = ImageCarouselTemplate(
                 columns=[
@@ -382,7 +434,28 @@ def handle_message(event):
                     messages=[image_carousel_message]
                 )
             )
-        # 5. 其他訊息
+
+        # 4. 溫度
+        elif text == "溫度":
+            QuickChart_image_url = get_thingspeak_chart_url()
+            
+            image_message = ImageMessage(
+                original_content_url = QuickChart_image_url,            # 原始大小
+                preview_image_url = QuickChart_image_url
+            )
+            # Line Bot 回傳圖片訊息
+            # 注意：original_content_url 與 preview_image_url 都必須是 HTTPS
+            line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text="即時溫度變化圖")
+                            , image_message]
+                )
+            )
+
+        # 5. 濕度
+
+        # 6. 其他訊息
         else:
             if text != "是" and text != "否":
                 line_bot_api.reply_message(
