@@ -106,7 +106,17 @@ def get_thingspeak_temp_chart_url():
             }]
         },
         "options": {
-            "title": { "display": True, "text": "ThingSpeak溫度數據" }
+            "title": { 
+                "display": True,
+                "text": "ThingSpeak溫度數據"
+            },
+            "scales": {
+                "yAxes": [{
+                    "ticks": {
+                        "beginAtZero": False  # 只要設為 False，QuickChart 就會自動從資料的最小值附近開始畫
+                    }
+                }]
+            }
         }
     }
     
@@ -148,7 +158,17 @@ def get_thingspeak_humidity_chart_url():
             }]
         },
         "options": {
-            "title": { "display": True, "text": "ThingSpeak濕度數據" }
+            "title": { 
+                "display": True,
+                "text": "ThingSpeakg濕度數據"
+            },
+            "scales": {
+                "yAxes": [{
+                    "ticks": {
+                        "beginAtZero": False  # 只要設為 False，QuickChart 就會自動從資料的最小值附近開始畫
+                    }
+                }]
+            }
         }
     }
     
