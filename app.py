@@ -76,7 +76,7 @@ def get_courses_list(day_name):
         return []
 
 
-def get_thingspeak_chart_url():
+def get_thingspeak_temp_chart_url():
     # 1. 設定 ThingSpeak 參數
     channel_id = os.getenv('THINKSPEAK_TEMP_CHANNEL_ID')
     read_api_key = os.getenv('THINKSPEAK_TEMP_READ_API_KEY')
@@ -107,6 +107,48 @@ def get_thingspeak_chart_url():
         },
         "options": {
             "title": { "display": True, "text": "ThingSpeak溫度數據" }
+        }
+    }
+    
+    # 將字典轉換為字串並進行 URL 編碼
+    json_str = json.dumps(chart_config)
+    encoded_config = urllib.parse.quote(json_str)
+    quickchart_url = f"https://quickchart.io/chart?c={encoded_config}&bkg=white"
+    
+    return quickchart_url
+
+
+def get_thingspeak_humidity_chart_url():
+    # 1. 設定 ThingSpeak 參數
+    channel_id = os.getenv('THINKSPEAK_HUMIDITY_CHANNEL_ID')
+    read_api_key = os.getenv('THINKSPEAK_HUMIDITY_READ_API_KEY')
+    RESULTS_NUM = 8  # 想要顯示最近的幾筆資料
+    
+    # 取得 ThingSpeak 原始數據 (JSON)
+    ts_url = f'https://api.thingspeak.com/channels/{channel_id}/fields/1.json?api_key={read_api_key}&results={RESULTS_NUM}&timezone=Asia/Taipei'
+    response = requests.get(ts_url).json()
+    
+    # 解析數據
+    feeds = response.get('feeds', [])
+    labels = [f["created_at"][11:16] for f in feeds]  # 取得時間 (例如 14:30)
+    data = [float(f["field1"]) if f["field1"] else 0 for f in feeds] # 取得數值
+    
+    # 2. 設定 QuickChart 配置 (Chart.js 語法)
+    chart_config = {
+        "type": "line",
+        "data": {
+            "labels": labels,
+            "datasets": [{
+                "label": "濕度(°C)",
+                "data": data,
+                "fill": True,
+                "backgroundColor": "rgba(54, 162, 235, 0.2)",
+                "borderColor": "rgb(54, 162, 235)",
+                "borderWidth": 2
+            }]
+        },
+        "options": {
+            "title": { "display": True, "text": "ThingSpeak濕度數據" }
         }
     }
     
@@ -438,7 +480,7 @@ def handle_message(event):
 
         # 4. 溫度
         elif text == "溫度":
-            QuickChart_image_url = get_thingspeak_chart_url()
+            QuickChart_image_url = get_thingspeak_temp_chart_url()
             
             image_message = ImageMessage(
                 original_content_url = QuickChart_image_url,            # 原始大小
@@ -449,12 +491,28 @@ def handle_message(event):
             line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
-                    messages=[TextMessage(text="即時溫度變化圖")
+                    messages=[TextMessage(text="溫度變化圖")
                             , image_message]
                 )
             )
 
         # 5. 濕度
+        elif text == "濕度":
+            QuickChart_image_url = get_thingspeak_humidity_chart_url()
+            
+            image_message = ImageMessage(
+                original_content_url = QuickChart_image_url,            # 原始大小
+                preview_image_url = QuickChart_image_url
+            )
+            # Line Bot 回傳圖片訊息
+            # 注意：original_content_url 與 preview_image_url 都必須是 HTTPS
+            line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text="濕度變化圖")
+                            , image_message]
+                )
+            )
 
         # 6. 其他訊息
         else:
