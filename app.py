@@ -448,7 +448,7 @@ def handle_message(event):
             line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
-                    messages=[TextMessage(text="即時溫度變化圖")
+                    messages=[TextMessage(text=f"{QuickChart_image_url}")
                             , image_message]
                 )
             )
@@ -465,3 +465,4 @@ def handle_message(event):
                     )
                 )
             
+
