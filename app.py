@@ -111,7 +111,8 @@ def get_thingspeak_chart_url():
     }
     
     # 將字典轉換為字串並進行 URL 編碼
-    encoded_config = urllib.parse.quote(str(chart_config))
+    json_str = json.dumps(chart_config)
+    encoded_config = urllib.parse.quote(json_str)
     quickchart_url = f"https://quickchart.io/chart?c={encoded_config}"
     
     return quickchart_url
@@ -448,7 +449,7 @@ def handle_message(event):
             line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
-                    messages=[TextMessage(text=f"{QuickChart_image_url}")
+                    messages=[TextMessage(text="即時溫度變化圖")
                             , image_message]
                 )
             )
@@ -465,4 +466,3 @@ def handle_message(event):
                     )
                 )
             
-
