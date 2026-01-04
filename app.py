@@ -83,7 +83,7 @@ def get_thingspeak_chart_url():
     RESULTS_NUM = 8  # 想要顯示最近的幾筆資料
     
     # 取得 ThingSpeak 原始數據 (JSON)
-    ts_url = f'https://api.thingspeak.com/channels/{channel_id}/fields/1.json?api_key={read_api_key}&results={RESULTS_NUM}'
+    ts_url = f'https://api.thingspeak.com/channels/{channel_id}/fields/1.json?api_key={read_api_key}&results={RESULTS_NUM}&timezone=Asia/Taipei'
     response = requests.get(ts_url).json()
     
     # 解析數據
@@ -113,7 +113,7 @@ def get_thingspeak_chart_url():
     # 將字典轉換為字串並進行 URL 編碼
     json_str = json.dumps(chart_config)
     encoded_config = urllib.parse.quote(json_str)
-    quickchart_url = f"https://quickchart.io/chart?c={encoded_config}"
+    quickchart_url = f"https://quickchart.io/chart?c={encoded_config}&bkg=white"
     
     return quickchart_url
 
