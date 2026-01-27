@@ -41,12 +41,14 @@ import psycopg2
 import json
 import requests
 import urllib.parse
+import time
 
 
 app = Flask(__name__)
 
 configuration = Configuration(access_token=os.getenv('CHANNEL_ACCESS_TOKEN'))
 line_handler = WebhookHandler(os.getenv('CHANNEL_SECRET'))
+
 
 def get_courses_list(day_name):
     supabase_url = os.getenv('DATABASE_URL')
@@ -180,6 +182,9 @@ def get_thingspeak_humidity_chart_url():
     return quickchart_url
 
 
+def weather():
+    pass
+
 @app.route("/callback", methods=['POST'])
 def callback():
     # get X-Line-Signature header value
@@ -221,26 +226,26 @@ def create_rich_menu():
             "areas": [
                 {
                     "bounds": {
-                        "x": 21,
-                        "y": 21,
+                        "x": 853,
+                        "y": 17,
                         "width": 794,
                         "height": 806
                     },
                     "action": {
                         "type": "message",
-                        "text": "溫度"
+                        "text": "雷達回波圖"
                     }
                 },
                 {
                     "bounds": {
-                        "x": 853,
-                        "y": 18,
+                        "x": 1684,
+                        "y": 22,
                         "width": 795,
                         "height": 810
                     },
                     "action": {
                         "type": "message",
-                        "text": "濕度"
+                        "text": "天氣預報"
                     }
                 },
                 {
@@ -498,6 +503,37 @@ def handle_message(event):
                 )
             )
 
+        # 4. 雷達回波圖
+        elif text == "雷達回波圖" or text == "雷達回波":
+            radar_image_url = f"https://cwaopendata.s3.ap-northeast-1.amazonaws.com/Observation/O-A0058-001.png?{time.time_ns()}"
+            
+            image_message = ImageMessage(
+                original_content_url = radar_image_url,
+                preview_image_url = radar_image_url            # 原始大小
+            )
+            line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text="雷達回波圖")
+                            , image_message]
+                )
+            )
+
+        # 5. 天氣預報
+        elif text == "天氣預報":
+                print("天氣預報功能尚未完成")
+
+        # 6. 其他訊息
+        else:
+            if text != "是" and text != "否":
+                line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text="我不清楚你在說什麼，可以看看下方資訊欄位喔")]   
+                    )
+                )
+
+        """
         # 4. 溫度
         elif text == "溫度":
             QuickChart_image_url = get_thingspeak_temp_chart_url()
@@ -533,14 +569,5 @@ def handle_message(event):
                             , image_message]
                 )
             )
-
-        # 6. 其他訊息
-        else:
-            if text != "是" and text != "否":
-                line_bot_api.reply_message(
-                    ReplyMessageRequest(
-                        reply_token=event.reply_token,
-                        messages=[TextMessage(text="我不清楚你在說什麼，可以看看下方資訊欄位喔")]   
-                    )
-                )
-            
+        """
+                
