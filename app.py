@@ -551,7 +551,16 @@ def handle_message(event):
 
         # 5. 天氣預報
         elif text == "天氣預報":
-                print("天氣預報功能尚未完成")
+                body = request.get_data(as_text=True)
+                json_data = json.loads(body)
+                address = json_data['events'][0]['message']['address'].replace('台','臺')  # 取出地址資訊，並將「台」換成「臺」
+                reply = weather(address)
+                line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text=reply)]
+                    )
+                )
 
         # 6. 其他訊息
         else:
