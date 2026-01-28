@@ -28,13 +28,15 @@ from linebot.v3.messaging import (
     PostbackAction,
     MessageAction,
     URIAction,
-    DatetimePickerAction
+    DatetimePickerAction,
+    LocationAction
 )
 from linebot.v3.webhooks import (
     FollowEvent,
     PostbackEvent,
     MessageEvent,
-    TextMessageContent
+    TextMessageContent,
+    LocationMessageContent
 )
 import os
 import psycopg2
@@ -394,6 +396,7 @@ def handle_postback(event):
             )
         )
 
+
 # 訊息事件
 @line_handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
@@ -551,14 +554,16 @@ def handle_message(event):
 
         # 5. 天氣預報
         elif text == "天氣預報":
-                body = request.get_data(as_text=True)
-                json_data = json.loads(body)
-                address = json_data['events'][0]['message']['address'].replace('台','臺')  # 取出地址資訊，並將「台」換成「臺」
-                reply = weather(address)
+                # 建立一個請求位置的 QuickReply 按鈕
+                location_item = QuickReplyItem(
+                    action=LocationAction(label="傳送我的位置")
+                )
+
                 line_bot_api.reply_message(
                     ReplyMessageRequest(
                         reply_token=event.reply_token,
-                        messages=[TextMessage(text=reply)]
+                        messages=[TextMessage(text="請點擊下方按鈕，分享您目前的位置以查詢天氣：",
+                                              quick_reply=QuickReply(items=[location_item]))]
                     )
                 )
 
@@ -610,3 +615,19 @@ def handle_message(event):
             )
         """
                 
+
+# 位置事件
+@line_handler.add(MessageEvent, message=LocationMessageContent)
+def handle_location_message(event):
+    with ApiClient(configuration) as api_client:
+        line_bot_api = MessagingApi(api_client)
+
+        user_address = event.message.address.replace('台','臺')  # 取出地址資訊，並將「台」換成「臺」
+
+        reply_text = weather(user_address)
+        line_bot_api.reply_message(
+            ReplyMessageRequest(
+                reply_token=event.reply_token,
+                messages=[TextMessage(text=reply_text)]
+            )
+        )
