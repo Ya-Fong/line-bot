@@ -182,8 +182,38 @@ def get_thingspeak_humidity_chart_url():
     return quickchart_url
 
 
-def weather():
-    pass
+def weather(address):
+    try:
+        owa_api_key = os.getenv('OPEN_WEATHER_DATA_API_KEY')
+        url = [f'https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0001-001?Authorization={owa_api_key}',
+            f'https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0003-001?Authorization={owa_api_key}']
+        result = {}
+        for item in url:
+            req = requests.get(item)   # 爬取目前天氣網址的資料
+            data = req.json()
+            station = data['records']['Station']   # 觀測站
+            for i in station:
+                city = i['GeoInfo']['CountyName']  # 縣市
+                area = i['GeoInfo']['TownName']    # 區域
+                # 使用「縣市+區域」作為 key，例如「高雄市前鎮區」就是 key
+                # 如果 result 裡沒有這個 key，就記錄相關資訊
+                if not f'{city}{area}' in result:
+                    weather = i['WeatherElement']['Weather']
+                    temp = i['WeatherElement']['AirTemperature'] 
+                    humid = i['WeatherElement']['RelativeHumidity']
+                    # 回傳結果
+                    result[f'{city}{area}'] = f'目前天氣狀況「{weather}」，溫度 {temp} 度，相對濕度 {humid}%!'
+
+        output = '找不到氣象資訊'
+        for i in result:
+            if i in address: # 如果地址裡存在 key 的名稱
+                output = f'「{address}」{result[i]}'
+                break
+    except Exception as e:
+        print(e)
+        output = '抓取失敗...'
+    return output
+
 
 @app.route("/callback", methods=['POST'])
 def callback():
