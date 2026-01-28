@@ -187,8 +187,7 @@ def get_thingspeak_humidity_chart_url():
 def weather(address):
     try:
         owa_api_key = os.getenv('OPEN_WEATHER_DATA_API_KEY')
-        url = [f'https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0001-001?Authorization={owa_api_key}',
-            f'https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0003-001?Authorization={owa_api_key}']
+        url = [f'https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0001-001?Authorization={owa_api_key}']
         result = {}
         for item in url:
             req = requests.get(item)   # 爬取目前天氣網址的資料
@@ -631,3 +630,4 @@ def handle_location_message(event):
                 messages=[TextMessage(text=reply_text)]
             )
         )
+
