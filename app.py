@@ -222,7 +222,7 @@ def weather(address):
 
 def air_quality(address):
     try:
-        moe_api_key = os.getenv('MINISTRY_OF_EVIRONMENT_API_KEY')
+        moe_api_key = os.getenv('MINISTRY_OF_ENVIRONMENT_API_KEY')
         url = f'https://data.moenv.gov.tw/api/v2/aqx_p_432?offset=0&limit=1000&api_key={moe_api_key}'
         
         req = requests.get(url)
@@ -800,3 +800,4 @@ def handle_message(event):
             )
         """
                 
+
