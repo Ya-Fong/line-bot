@@ -223,35 +223,31 @@ def weather(address):
 def air_quality(address):
     try:
         moe_api_key = os.getenv('MINISTRY_OF_ENVIRONMENT_API_KEY')
-        # 依照你的設定，這邊維持簡單的 url 即可
         url = f'https://data.moenv.gov.tw/api/v2/aqx_p_432?language=zh&offset=0&limit=1000&api_key={moe_api_key}'
         
         req = requests.get(url)
-        data = req.json()  # 根據你的範例，這抓下來直接就是一個陣列 [{}, {}, ...]
-        
+        data = req.json()
+
         output = '找不到對應的空氣品質資訊'
 
-        # 直接跑迴圈把陣列裡的字典一個個拿出來
         for item in data:
-            county = item['county']      
-            sitename = item['sitename']  
+            county = item['county']      # 縣市 (ex: 臺北市)
+            sitename = item['sitename']  # 測站名稱 (ex: 松山)
             
-            # 舉例來說，如果 LINE 定位傳來的地址是「苗栗縣苗栗市聯大路2號」
-            # county (苗栗縣) 和 sitename (苗栗) 都在字串裡面，就會成功比對！
+            # 檢查測站的縣市和名稱有沒有出現在你的地址裡
+            # (因為 API 的 sitename 通常沒有「區」，所以這樣比對最準)
             if county in address and sitename in address:
-                aqi = item['aqi']
-                status = item['status']  # 直接拿 API 裡的 status 欄位，不囉嗦！
+                aqi_str = item['aqi']
+                aqi = int(aqi_str)
+                status = item['status']
                 
-                if not aqi:
-                    output = f'「{address}」對應的測站({sitename})目前維護中，無數值。'
-                else:
-                    output = f'「{address}」目前的 AQI 為 {aqi}，空氣品質：{status}。'
-                break 
-                
+                output = f'「{address}」目前的AQI:{aqi}，空氣品質:{status}'
+                    
+                break # 找到了就結束尋找，不用再往下跑迴圈
+            
     except Exception as e:
-        # 如果還是失敗，把具體的錯誤原因印在 LINE 上面
-        output = f'抓取發生系統錯誤：{e}'
-        
+        print(e)
+        output = '抓取失敗...'
     return output
 
 
@@ -791,4 +787,3 @@ def handle_message(event):
             )
         """
                 
-
