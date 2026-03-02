@@ -229,7 +229,7 @@ def air_quality(address):
         if not moe_api_key:
             return '抓取失敗：找不到環境變數(API Key)'
 
-        url = f'https://data.moenv.gov.tw/api/v2/aqx_p_432?offset=0&limit=1000&api_key={moe_api_key}'
+        url = f'https://data.moenv.gov.tw/api/v2/aqx_p_432?language=zh&offset=0&limit=1000&api_key={moe_api_key}'
         
         req = requests.get(url)
         # 確認 API 伺服器有正常回應
@@ -862,4 +862,5 @@ def handle_message(event):
             )
         """
                 
+
 
