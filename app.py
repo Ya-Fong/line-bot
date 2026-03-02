@@ -1,3 +1,4 @@
+from unittest import result
 from flask import Flask, request, abort
 
 from linebot.v3 import (
@@ -223,20 +224,40 @@ def air_quality(address):
     try:
         moe_api_key = os.getenv('MINISTRY_OF_EVIRONMENT_API_KEY')
         url = f'https://data.moenv.gov.tw/api/v2/aqx_p_432?offset=0&limit=1000&api_key={moe_api_key}'
+        
         req = requests.get(url)
         data = req.json()
-        records = data['records']
-        for item in records:
-            county = item['county']      # 縣市
-            sitename = item['sitename']  # 區域
-            name = f'{county}{sitename}'
-            aqi = int(item['aqi'])       # AQI 數值
-            aqi_status = ['良好','普通','對敏感族群不健康','對所有族群不健康','非常不健康','危害']
-            msg = aqi_status[aqi//50]    # 除以五十之後無條件捨去，取得整數
+        records = data.get('records', [])
 
-            for k in output:
-                if name in k:
-                    output[k] = output[k] + f'\n\nAQI：{aqi}，空氣品質{msg}。'
+        output = '找不到對應的空氣品質資訊'
+
+        for item in records:
+            county = item.get('county', '')      # 縣市 (ex: 臺北市)
+            sitename = item.get('sitename', '')  # 測站名稱 (ex: 松山)
+            
+            # 檢查測站的縣市和名稱有沒有出現在你的地址裡
+            # (因為 API 的 sitename 通常沒有「區」，所以這樣比對最準)
+            if county in address and sitename in address:
+                aqi_str = item.get('aqi', '')
+                aqi = int(aqi_str)
+                
+                if aqi <= 50:
+                    msg = '良好'
+                elif aqi <= 100:
+                    msg = '普通'
+                elif aqi <= 150:
+                    msg = '對敏感族群不健康'
+                elif aqi <= 200:
+                    msg = '對所有族群不健康'
+                elif aqi <= 300:
+                    msg = '非常不健康'
+                else:
+                    msg = '危害'
+                    
+                # 組合最終要回傳的字串
+                output = f'「{address}」目前的AQI:{aqi}，空氣品質:{msg}。'
+                break # 找到了就結束尋找，不用再往下跑迴圈
+            
     except Exception as e:
         print(e)
         output = '抓取失敗...'
@@ -434,12 +455,13 @@ def create_rich_menu():
 
         # 設定預設的Rich Menu(使用 rich_menu_id_1)
         line_bot_api.set_default_rich_menu(rich_menu_id_1)
-        """
+        
         # ---------------------------------------------------
         #  Rich Menu 設定區塊 (已執行過，暫時封印)
         #  如果要更新選單圖片或配置，請再訪問該網頁一次
         #  https://line-bot-beta-two.vercel.app/create_rich_menu
         # ---------------------------------------------------
+        """
         # 發送請求建立圖文選單
         response = requests.post('https://api.line.me/v2/bot/richmenu', headers=header, data=json.dumps(body).encode('utf-8'))
         response = response.json()
@@ -681,8 +703,8 @@ def handle_message(event):
                 )
             )
 
-        # 4. 雷達回波圖
-        elif text == "雷達回波圖" or text == "雷達回波":
+        # 4. 雷達迴波圖
+        elif text == "雷達迴波圖":
             radar_image_url = f"https://cwaopendata.s3.ap-northeast-1.amazonaws.com/Observation/O-A0058-001.png?{time.time_ns()}"
             
             image_message = ImageMessage(
@@ -698,7 +720,7 @@ def handle_message(event):
             )
 
         # 5. 天氣預報
-        elif text == "天氣預報":
+        elif text == "即時天氣":
             user_states[user_id] = "weather" # 記錄狀態為看天氣
                 
             # 建立一個請求位置的 QuickReply 按鈕
