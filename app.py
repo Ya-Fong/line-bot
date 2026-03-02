@@ -241,7 +241,7 @@ def air_quality(address):
                 aqi = int(aqi_str)
                 status = item['status']
                 
-                output = f'「{address}」目前的AQI:{aqi}，空氣品質:{status}'
+                output = f'「{address}」目前的AQI：{aqi}，空氣品質：{status}'
                     
                 break # 找到了就結束尋找，不用再往下跑迴圈
             
@@ -787,3 +787,4 @@ def handle_message(event):
             )
         """
                 
+
