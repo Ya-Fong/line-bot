@@ -15,6 +15,7 @@ from linebot.v3.messaging import (
     ImageMessage,
     TextMessage,
     Emoji,
+    RichMenuSwitchAction,
     RichMenuSize,
     RichMenuRequest,
     RichMenuArea,
@@ -45,6 +46,8 @@ import requests
 import urllib.parse
 import time
 
+# 記錄使用者當前狀態的字典 (Key: user_id, Value: 狀態字串)
+user_states = {}
 
 app = Flask(__name__)
 
@@ -216,6 +219,30 @@ def weather(address):
     return output
 
 
+def air_quality(address):
+    try:
+        moe_api_key = os.getenv('MINISTRY_OF_EVIRONMENT_API_KEY')
+        url = f'https://data.moenv.gov.tw/api/v2/aqx_p_432?offset=0&limit=1000&api_key={moe_api_key}'
+        req = requests.get(url)
+        data = req.json()
+        records = data['records']
+        for item in records:
+            county = item['county']      # 縣市
+            sitename = item['sitename']  # 區域
+            name = f'{county}{sitename}'
+            aqi = int(item['aqi'])       # AQI 數值
+            aqi_status = ['良好','普通','對敏感族群不健康','對所有族群不健康','非常不健康','危害']
+            msg = aqi_status[aqi//50]    # 除以五十之後無條件捨去，取得整數
+
+            for k in output:
+                if name in k:
+                    output[k] = output[k] + f'\n\nAQI：{aqi}，空氣品質{msg}。'
+    except Exception as e:
+        print(e)
+        output = '抓取失敗...'
+    return output
+
+
 @app.route("/callback", methods=['POST'])
 def callback():
     # get X-Line-Signature header value
@@ -246,45 +273,100 @@ def create_rich_menu():
             'Authorization': 'Bearer ' + os.getenv('CHANNEL_ACCESS_TOKEN'),
             'Content-Type': 'application/json'
         }
-        body = {
+
+        # 建立 Rich Menu1 和 Rich Menu 2 的配置
+        body_1 = {
             "size": {
                 "width": 2500,
                 "height": 1686
             },
             "selected": True,
-            "name": "圖文選單 1",
+            "name": "richmenu 1",
             "chatBarText": "查看更多資訊",
             "areas": [
                 {
                     "bounds": {
-                        "x": 853,
-                        "y": 17,
-                        "width": 794,
-                        "height": 806
+                        "x": 1250,
+                        "y": 0,
+                        "width": 1247,
+                        "height": 250
                     },
                     "action": {
-                        "type": "message",
-                        "text": "雷達回波圖"
+                        "type": "richmenuswitch",
+                        "richMenuAliasId": "richmenu-alias-2",
+                        "data": "richmenu-changed-to-2"
                     }
                 },
                 {
                     "bounds": {
-                        "x": 1684,
-                        "y": 22,
-                        "width": 795,
-                        "height": 810
+                        "x": 25,
+                        "y": 308,
+                        "width": 794,
+                        "height": 646
                     },
                     "action": {
                         "type": "message",
-                        "text": "天氣預報"
+                        "text": "雷達迴波圖"
                     }
                 },
                 {
                     "bounds": {
-                        "x": 17,
-                        "y": 858,
+                        "x": 857,
+                        "y": 300,
+                        "width": 786,
+                        "height": 646
+                    },
+                    "action": {
+                        "type": "message",
+                        "text": "即時天氣"
+                    }
+                },
+                {
+                    "bounds": {
+                        "x": 1681,
+                        "y": 304,
                         "width": 794,
-                        "height": 811
+                        "height": 642
+                    },
+                    "action": {
+                        "type": "message",
+                        "text": "空氣品質"
+                    }
+                }
+            ]
+        }
+        res_1 = requests.post('https://api.line.me/v2/bot/richmenu', headers=header, data=json.dumps(body_1).encode('utf-8')).json()
+        rich_menu_id_1 = res_1['richMenuId']
+        print(f"richmenu1建立成功: {rich_menu_id_1}")
+
+        body_2 = {
+            "size": {
+                "width": 2500,
+                "height": 1686
+            },
+            "selected": True,
+            "name": "richmenu 2",
+            "chatBarText": "查看更多資訊",
+            "areas": [
+                {
+                    "bounds": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 1251,
+                        "height": 252
+                    },
+                    "action": {
+                        "type": "richmenuswitch",
+                        "richMenuAliasId": "richmenu-alias-1",
+                        "data": "richmenu-changed-to-1"
+                    }
+                },
+                {
+                    "bounds": {
+                        "x": 25,
+                        "y": 304,
+                        "width": 794,
+                        "height": 650
                     },
                     "action": {
                         "type": "message",
@@ -293,10 +375,10 @@ def create_rich_menu():
                 },
                 {
                     "bounds": {
-                        "x": 848,
-                        "y": 862,
-                        "width": 799,
-                        "height": 807
+                        "x": 803,
+                        "y": 304,
+                        "width": 794,
+                        "height": 650
                     },
                     "action": {
                         "type": "message",
@@ -306,9 +388,9 @@ def create_rich_menu():
                 {
                     "bounds": {
                         "x": 1681,
-                        "y": 862,
-                        "width": 801,
-                        "height": 807
+                        "y": 313,
+                        "width": 785,
+                        "height": 633
                     },
                     "action": {
                         "type": "message",
@@ -317,7 +399,42 @@ def create_rich_menu():
                 }
             ]
         }
+        res_2 = requests.post('https://api.line.me/v2/bot/richmenu', headers=header, data=json.dumps(body_2).encode('utf-8')).json()
+        rich_menu_id_2 = res_2['richMenuId']
+        print(f"richmenu2建立成功: {rich_menu_id_2}")
 
+
+        # 上傳圖文選單圖片1至line server
+        image_1_url = 'https://raw.githubusercontent.com/Ya-Fong/line-bot/refs/heads/main/public/richmenu1.png'
+        img_response = requests.get(image_1_url)
+        line_bot_api_blob.set_rich_menu_image(
+            rich_menu_id=rich_menu_id_1,
+            body=img_response.content,
+            _headers={'Content-Type': 'image/png'}
+        )
+
+        # 上傳圖文選單圖片2至line server
+        image_2_url = 'https://raw.githubusercontent.com/Ya-Fong/line-bot/refs/heads/main/public/richmenu2.png'
+        img_response = requests.get(image_2_url)
+        line_bot_api_blob.set_rich_menu_image(
+            rich_menu_id=rich_menu_id_2,
+            body=img_response.content,
+            _headers={'Content-Type': 'image/png'}
+        )
+
+
+        # 為每個richmenu建立Alias(別名)
+        alias_body_1 = {"richMenuAliasId": "richmenu-alias-1",
+                        "richMenuId": rich_menu_id_1}
+        requests.post('https://api.line.me/v2/bot/richmenu/alias', headers=header, data=json.dumps(alias_body_1))
+
+        alias_body_2 = {"richMenuAliasId": "richmenu-alias-2", "richMenuId": rich_menu_id_2}
+        requests.post('https://api.line.me/v2/bot/richmenu/alias', headers=header, data=json.dumps(alias_body_2))
+
+
+        # 設定預設的Rich Menu(使用 rich_menu_id_1)
+        line_bot_api.set_default_rich_menu(rich_menu_id_1)
+        """
         # ---------------------------------------------------
         #  Rich Menu 設定區塊 (已執行過，暫時封印)
         #  如果要更新選單圖片或配置，請再訪問該網頁一次
@@ -329,15 +446,14 @@ def create_rich_menu():
         rich_menu_id = response['richMenuId']
 
         # 上傳圖文選單圖片
-        image_url = 'https://raw.githubusercontent.com/Ya-Fong/line-bot/main/public/richmenu.jpg'
+        image_url = 'https://raw.githubusercontent.com/Ya-Fong/line-bot/refs/heads/main/public/richmenu1.png'
         img_response = requests.get(image_url)
         line_bot_api_blob.set_rich_menu_image(
             rich_menu_id=rich_menu_id,
             body=img_response.content,
             _headers={'Content-Type': 'image/jpeg'}
         )
-
-        line_bot_api.set_default_rich_menu(rich_menu_id)
+        """
 
     return 'Rich menu created'
 
@@ -396,10 +512,40 @@ def handle_postback(event):
         )
 
 
+# 位置事件
+@line_handler.add(MessageEvent, message=LocationMessageContent)
+def handle_location_message(event):
+    user_id = event.source.user_id # 取得使用者的 ID
+
+    with ApiClient(configuration) as api_client:
+        line_bot_api = MessagingApi(api_client)
+
+        user_address = event.message.address.replace('台','臺')  # 取出地址資訊，並將「台」換成「臺」
+
+        # 取得使用者先前的狀態，預設為 'unknown'
+        current_state = user_states.get(user_id, "unknown")
+
+        if current_state == "weather":
+            reply_text = weather(user_address)
+            user_states.pop(user_id, None)  # 查詢完畢後，清除狀態，避免影響下次操作
+        
+        elif current_state == "air_quality":
+            reply_text = air_quality(user_address)
+            user_states.pop(user_id, None)  # 查詢完畢後，清除狀態，避免影響下次操作
+        
+        line_bot_api.reply_message(
+            ReplyMessageRequest(
+                reply_token=event.reply_token,
+                messages=[TextMessage(text=reply_text)]
+            )
+        )
+
+
 # 訊息事件
 @line_handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     text = event.message.text
+    user_id = event.source.user_id # 取得使用者的 ID
     
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
@@ -553,20 +699,38 @@ def handle_message(event):
 
         # 5. 天氣預報
         elif text == "天氣預報":
-                # 建立一個請求位置的 QuickReply 按鈕
-                location_item = QuickReplyItem(
-                    action=LocationAction(label="傳送我的位置")
-                )
+            user_states[user_id] = "weather" # 記錄狀態為看天氣
+                
+            # 建立一個請求位置的 QuickReply 按鈕
+            location_item = QuickReplyItem(
+                action=LocationAction(label="傳送我的位置")
+            )
 
-                line_bot_api.reply_message(
-                    ReplyMessageRequest(
-                        reply_token=event.reply_token,
-                        messages=[TextMessage(text="請點擊下方按鈕，分享您目前的位置以查詢天氣：",
-                                              quick_reply=QuickReply(items=[location_item]))]
-                    )
+            line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text="請點擊下方按鈕，分享您目前的位置以查詢天氣：",
+                        quick_reply=QuickReply(items=[location_item]))]
                 )
+            )
 
-        # 6. 其他訊息
+        # 6. 空氣品質
+        elif text == "空氣品質":
+            user_states[user_id] = "air_quality" # 記錄狀態為看空氣品質
+
+            location_item = QuickReplyItem(
+                action=LocationAction(label="傳送我的位置")
+            )
+
+            line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text="請點擊下方按鈕，分享您目前的位置以查詢空氣品質：",
+                        quick_reply=QuickReply(items=[location_item]))]
+                )
+            )
+
+        # 7. 其他訊息
         else:
             if text != "是" and text != "否":
                 line_bot_api.reply_message(
@@ -614,20 +778,3 @@ def handle_message(event):
             )
         """
                 
-
-# 位置事件
-@line_handler.add(MessageEvent, message=LocationMessageContent)
-def handle_location_message(event):
-    with ApiClient(configuration) as api_client:
-        line_bot_api = MessagingApi(api_client)
-
-        user_address = event.message.address.replace('台','臺')  # 取出地址資訊，並將「台」換成「臺」
-
-        reply_text = weather(user_address)
-        line_bot_api.reply_message(
-            ReplyMessageRequest(
-                reply_token=event.reply_token,
-                messages=[TextMessage(text=reply_text)]
-            )
-        )
-
