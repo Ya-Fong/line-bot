@@ -222,71 +222,8 @@ def weather(address):
 
 def air_quality(address):
     try:
-        # 1. 取得 API Key (注意你原本的環境變數拼字是 EVIRONMENT，少了一個 N，請確認你的 .env 設定也是這樣)
-        moe_api_key = os.getenv('MINISTRY_OF_EVIRONMENT_API_KEY')
-        
-        # 加個防呆，如果沒抓到金鑰直接回傳提示
-        if not moe_api_key:
-            return '抓取失敗：找不到環境變數(API Key)'
-
-        url = f'https://data.moenv.gov.tw/api/v2/aqx_p_432?offset=0&limit=1000&api_key={moe_api_key}'
-        
-        req = requests.get(url)
-        # 確認 API 伺服器有正常回應
-        if req.status_code != 200:
-            return f'抓取失敗：API 伺服器狀態碼 {req.status_code}'
-
-        data = req.json()
-        records = data.get('records', [])
-
-        output = '找不到對應的空氣品質資訊'
-
-        for item in records:
-            county = item.get('county', '')      # 縣市 (ex: 苗栗縣)
-            sitename = item.get('sitename', '')  # 測站名稱 (ex: 苗栗)
-            
-            # 檢查測站的縣市和名稱有沒有出現在地址裡
-            # 假設你在學校測試，LINE 傳來的地址是「360苗栗縣苗栗市聯大路2號」
-            # county(苗栗縣) 和 sitename(苗栗) 都在地址裡，就會成功比對進入下一個判斷！
-            if county in address and sitename in address:
-                aqi_str = item.get('aqi', '')
-                
-                # 【關鍵修復】如果測站維護中，沒有數值就跳出提示
-                if not aqi_str:
-                    output = f'「{address}」對應的測站({sitename})目前維護中，無數值。'
-                    break
-                
-                aqi = int(aqi_str)
-                
-                if aqi <= 50:
-                    msg = '良好'
-                elif aqi <= 100:
-                    msg = '普通'
-                elif aqi <= 150:
-                    msg = '對敏感族群不健康'
-                elif aqi <= 200:
-                    msg = '對所有族群不健康'
-                elif aqi <= 300:
-                    msg = '非常不健康'
-                else:
-                    msg = '危害'
-                    
-                output = f'「{address}」目前的AQI:{aqi}，空氣品質:{msg}。'
-                break 
-            
-    except Exception as e:
-        # 把真實的錯誤原因印在終端機，同時回傳給 LINE 使用者
-        print(f"空氣品質抓取發生例外錯誤: {e}")
-        output = f'抓取發生系統錯誤：{e}'
-        
-    return output
-
-
-"""
-def air_quality(address):
-    try:
         moe_api_key = os.getenv('MINISTRY_OF_ENVIRONMENT_API_KEY')
-        url = f'https://data.moenv.gov.tw/api/v2/aqx_p_432?offset=0&limit=1000&api_key={moe_api_key}'
+        url = f'https://data.moenv.gov.tw/api/v2/aqx_p_432?language=zh&offset=0&limit=1000&api_key={moe_api_key}'
         
         req = requests.get(url)
         data = req.json()
@@ -325,7 +262,7 @@ def air_quality(address):
         print(e)
         output = '抓取失敗...'
     return output
-"""
+
 
 @app.route("/callback", methods=['POST'])
 def callback():
